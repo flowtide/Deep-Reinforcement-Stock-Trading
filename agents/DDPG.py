@@ -88,12 +88,24 @@ class CriticNetwork:
         # Ensure inputs are tensors
         states_batch = tf.convert_to_tensor(states_batch, dtype=tf.float32)
         actions_batch = tf.convert_to_tensor(actions_batch, dtype=tf.float32)
-        
-        with tf.GradientTape() as tape:
-            Q_values = self.model([states_batch, actions_batch], training=True)
-        grads = tape.gradient(Q_values, actions_batch)
-        return grads
 
+        with tf.GradientTape() as tape:
+            tape.watch(actions_batch)
+            Q_values = self.model([states_batch, actions_batch], training=True)
+        
+        # Print debugging information
+        print("states_batch shape:", states_batch.shape)
+        print("actions_batch shape:", actions_batch.shape)
+        print("Q_values shape:", Q_values.shape)
+
+        # Calculate gradients
+        grads = tape.gradient(Q_values, actions_batch)
+
+        # Check if gradients are None
+        if grads is None:
+            raise ValueError("Gradients are None; check Q-values computation and ensure shapes are compatible.")
+        return grads
+    
     def train_target(self):
         critic_weights = self.model.get_weights()
         critic_target_weights = self.model_target.get_weights()
