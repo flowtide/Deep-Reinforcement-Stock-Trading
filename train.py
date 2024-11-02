@@ -13,6 +13,7 @@ parser.add_argument('--stock_name', action="store", dest="stock_name", default='
 parser.add_argument('--window_size', action="store", dest="window_size", default=10, type=int, help="span (days) of observation")
 parser.add_argument('--num_episode', action="store", dest="num_episode", default=10, type=int, help='episode number')
 parser.add_argument('--initial_balance', action="store", dest="initial_balance", default=1000000, type=int, help='initial balance')
+parser.add_argument('--save_frequency', action="store", dest="save_frequency", default=5, type=int, help='frequency of saving model (in episodes)')
 inputs = parser.parse_args()
 
 model_name = inputs.model_name
@@ -135,7 +136,7 @@ for e in range(1, num_episode + 1):
             returns_across_episodes.append(portfolio_return)
 
     # save models periodically
-    if e % 5 == 0:
+    if e % inputs.save_frequency == 0:
         if model_name == 'DQN':
             agent.model.save('saved_models/DQN_ep' + str(e) + '.h5')
         elif model_name == 'DDPG':
