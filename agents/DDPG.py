@@ -36,11 +36,21 @@ class ActorNetwork:
             self.model_target.set_weights(self.model.get_weights())  # initialize target network
 
     def train(self, states_batch, action_grads_batch):
+        # Ensure action_grads_batch is not None
+        if action_grads_batch is None:
+            raise ValueError("Received None for action_grads_batch; ensure gradient computation is correct.")
+        
         with tf.GradientTape() as tape:
             actions = self.model(states_batch, training=True)
             # Mean policy gradient for actor update
             sampled_policy_grad = -tf.reduce_mean(action_grads_batch * actions) / self.buffer_size
         grads = tape.gradient(sampled_policy_grad, self.model.trainable_variables)
+
+        # Check if gradients are None
+        if any(g is None for g in grads):
+            raise ValueError("Received None in gradients; check computation for sampled_policy_grad.")
+        
+        # Apply gradients
         self.model.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
 
     def train_target(self):
@@ -75,6 +85,10 @@ class CriticNetwork:
             self.model_target, _, _ = self.create_critic_network(state_size, action_dim)
 
     def gradients(self, states_batch, actions_batch):
+        # Ensure inputs are tensors
+        states_batch = tf.convert_to_tensor(states_batch, dtype=tf.float32)
+        actions_batch = tf.convert_to_tensor(actions_batch, dtype=tf.float32)
+        
         with tf.GradientTape() as tape:
             Q_values = self.model([states_batch, actions_batch], training=True)
         grads = tape.gradient(Q_values, actions_batch)
@@ -175,9 +189,12 @@ class Agent(Portfolio):
                 y = reward * np.ones((1, self.action_dim))
             y_batch.append(y)
 
-        y_batch = np.vstack(y_batch)
-        states_batch = np.vstack([tup[0] for tup in mini_batch])
-        actions_batch = np.vstack([tup[1] for tup in mini_batch])
+        # Convert y_batch to a tensor
+        y_batch = tf.convert_to_tensor(np.vstack(y_batch), dtype=tf.float32)
+        
+        # Ensure states_batch and actions_batch are tensors
+        states_batch = tf.convert_to_tensor(np.vstack([tup[0] for tup in mini_batch]), dtype=tf.float32)
+        actions_batch = tf.convert_to_tensor(np.vstack([tup[1] for tup in mini_batch]), dtype=tf.float32)
 
         # Update critic by minimizing the loss
         loss = self.critic.model.train_on_batch([states_batch, actions_batch], y_batch)
