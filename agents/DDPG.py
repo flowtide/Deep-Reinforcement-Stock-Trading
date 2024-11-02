@@ -97,7 +97,7 @@ class CriticNetwork:
         h3 = Dense(HIDDEN3_UNITS, activation='relu')(h2)
         Q = Dense(action_dim, activation='relu')(h3)
         model = Model(inputs=[states, actions], outputs=Q)
-        model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate, decay=1e-6))
+        model.compile(loss='mse', optimizer=Adam(learning_rate=self.learning_rate, decay=1e-6))
         return model, actions, states
 
 

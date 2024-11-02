@@ -9,10 +9,10 @@ from utils import *
 
 parser = argparse.ArgumentParser(description='command line options')
 parser.add_argument('--model_name', action="store", dest="model_name", default='DQN', help="model name")
-parser.add_argument('--stock_name', action="store", dest="stock_name", default='^GSPC_2010-2015', help="stock name")
+parser.add_argument('--stock_name', action="store", dest="stock_name", default='^KB_2014-2021', help="stock name")
 parser.add_argument('--window_size', action="store", dest="window_size", default=10, type=int, help="span (days) of observation")
 parser.add_argument('--num_episode', action="store", dest="num_episode", default=10, type=int, help='episode number')
-parser.add_argument('--initial_balance', action="store", dest="initial_balance", default=50000, type=int, help='initial balance')
+parser.add_argument('--initial_balance', action="store", dest="initial_balance", default=1000000, type=int, help='initial balance')
 inputs = parser.parse_args()
 
 model_name = inputs.model_name
@@ -45,7 +45,7 @@ def buy(t):
     if agent.balance > stock_prices[t]:
         agent.balance -= stock_prices[t]
         agent.inventory.append(stock_prices[t])
-        return 'Buy: ${:.2f}'.format(stock_prices[t])
+        return 'Buy: KRW.{:.2f}'.format(stock_prices[t])
 
 def sell(t):
     if len(agent.inventory) > 0:
@@ -54,7 +54,7 @@ def sell(t):
         profit = stock_prices[t] - bought_price
         global reward
         reward = profit
-        return 'Sell: ${:.2f} | Profit: ${:.2f}'.format(stock_prices[t], profit)
+        return 'Sell: KRW.{:.2f} | Profit: KRW.{:.2f}'.format(stock_prices[t], profit)
 
 # configure logging
 logging.basicConfig(filename=f'logs/{model_name}_training_{stock_name}.log', filemode='w',
@@ -66,7 +66,7 @@ logging.info(f'Trading Period:           {trading_period} days')
 logging.info(f'Window Size:              {window_size} days')
 logging.info(f'Training Episode:         {num_episode}')
 logging.info(f'Model Name:               {model_name}')
-logging.info('Initial Portfolio Value: ${:,}'.format(initial_balance))
+logging.info('Initial Portfolio Value: KRW.{:,}'.format(initial_balance))
 
 start_time = time.time()
 for e in range(1, num_episode + 1):
@@ -87,7 +87,7 @@ for e in range(1, num_episode + 1):
             actions = agent.act(state, t)
             action = np.argmax(actions)
         else:
-            actions = agent.model.predict(state)[0]
+            actions = agent.model.predict(state, verbose=0)[0]
             action = agent.act(state)
         
         # execute position

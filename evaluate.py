@@ -61,7 +61,7 @@ while portfolio_return == 0: # a hack to avoid stationary case
             actions = agent.act(state, t)
             action = np.argmax(actions)
         else:
-            actions = agent.model.predict(state)[0]
+            actions = agent.model.predict(state, verbose=0)[0]
             action = agent.act(state)
 
         # print('actions:', actions)

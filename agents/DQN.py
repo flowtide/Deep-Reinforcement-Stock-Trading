@@ -38,7 +38,7 @@ class Agent(Portfolio):
         model.add(Dense(units=32, activation='relu'))
         model.add(Dense(units=8, activation='relu'))
         model.add(Dense(self.action_dim, activation='softmax'))
-        model.compile(loss='mse', optimizer=Adam(lr=0.01))
+        model.compile(loss='mse', optimizer=Adam(learning_rate=0.01))
         return model
 
     def reset(self):
@@ -51,7 +51,7 @@ class Agent(Portfolio):
     def act(self, state):
         if not self.is_eval and np.random.rand() <= self.epsilon:
             return random.randrange(self.action_dim)
-        options = self.model.predict(state)
+        options = self.model.predict(state, verbose=0)
         return np.argmax(options[0])
 
     def experience_replay(self):
@@ -60,10 +60,10 @@ class Agent(Portfolio):
 
         for state, actions, reward, next_state, done in mini_batch:
             if not done:
-                Q_target_value = reward + self.gamma * np.amax(self.model.predict(next_state)[0])
+                Q_target_value = reward + self.gamma * np.amax(self.model.predict(next_state, verbose=0)[0])
             else:
                 Q_target_value = reward
-            next_actions = self.model.predict(state)
+            next_actions = self.model.predict(state, verbose=0)
             next_actions[0][np.argmax(actions)] = Q_target_value
             history = self.model.fit(state, next_actions, epochs=1, verbose=0)
 

@@ -84,10 +84,10 @@ def maximum_drawdown(portfolio_values):
 def evaluate_portfolio_performance(agent, logger):
     portfolio_return = agent.portfolio_values[-1] - agent.initial_portfolio_value
     logger.info("--------------------------------")
-    logger.info('Portfolio Value:        ${:.2f}'.format(agent.portfolio_values[-1]))
-    logger.info('Portfolio Balance:      ${:.2f}'.format(agent.balance))
+    logger.info('Portfolio Value:        KRW.{:.2f}'.format(agent.portfolio_values[-1]))
+    logger.info('Portfolio Balance:      KRW.{:.2f}'.format(agent.balance))
     logger.info('Portfolio Stocks Number: {}'.format(len(agent.inventory)))
-    logger.info('Total Return:           ${:.2f}'.format(portfolio_return))
+    logger.info('Total Return:           KRW.{:.2f}'.format(portfolio_return))
     logger.info('Mean/Daily Return Rate:  {:.3f}%'.format(np.mean(agent.return_rates) * 100))
     logger.info('Sharpe Ratio adjusted with Treasury bond daily return: {:.3f}'.format(sharpe_ratio(np.array(agent.return_rates)), risk_free=treasury_bond_daily_return_rate()))
     logger.info('Maximum Drawdown:        {:.3f}%'.format(maximum_drawdown(agent.portfolio_values) * 100))
@@ -101,7 +101,7 @@ def plot_portfolio_transaction_history(stock_name, agent):
 	buy_prices = [df.iloc[t, 4] for t in agent.buy_dates]
 	sell_prices = [df.iloc[t, 4] for t in agent.sell_dates]
 	plt.figure(figsize=(15, 5), dpi=100)
-	plt.title('{} Total Return on {}: ${:.2f}'.format(agent.model_type, stock_name, portfolio_return))
+	plt.title('{} Total Return on {}: KRW.{:.2f}'.format(agent.model_type, stock_name, portfolio_return))
 	plt.plot(df['Date'], df['Close'], color='black', label=stock_name)
 	plt.scatter(agent.buy_dates, buy_prices, c='green', alpha=0.5, label='buy')
 	plt.scatter(agent.sell_dates, sell_prices,c='red', alpha=0.5, label='sell')
@@ -127,14 +127,14 @@ def plot_portfolio_performance_comparison(stock_name, agent):
 	agent_return = agent.portfolio_values[-1] - agent.initial_portfolio_value
 	plt.figure(figsize=(15, 5), dpi=100)
 	plt.title('{} vs. Buy and Hold'.format(agent.model_type))
-	plt.plot(dates, agent.portfolio_values, color='green', label='{} Total Return: ${:.2f}'.format(agent.model_type, agent_return))
-	plt.plot(dates, buy_and_hold_portfolio_values, color='blue', label='{} Buy and Hold Total Return: ${:.2f}'.format(stock_name, buy_and_hold_return))
+	plt.plot(dates, agent.portfolio_values, color='green', label='{} Total Return: KRW.{:.2f}'.format(agent.model_type, agent_return))
+	plt.plot(dates, buy_and_hold_portfolio_values, color='blue', label='{} Buy and Hold Total Return: KRW.{:.2f}'.format(stock_name, buy_and_hold_return))
 	# compare with S&P 500 performance in 2018
 	if '^GSPC' not in stock_name:
 		dates, GSPC_buy_and_hold_portfolio_values, GSPC_buy_and_hold_return = buy_and_hold_benchmark('^GSPC_2018', agent)
-		plt.plot(dates, GSPC_buy_and_hold_portfolio_values, color='red', label='S&P 500 2018 Buy and Hold Total Return: ${:.2f}'.format(GSPC_buy_and_hold_return))
+		plt.plot(dates, GSPC_buy_and_hold_portfolio_values, color='red', label='S&P 500 2018 Buy and Hold Total Return: KRW.{:.2f}'.format(GSPC_buy_and_hold_return))
 	plt.xticks(np.linspace(0, len(dates), 10))
-	plt.ylabel('Portfolio Value ($)')
+	plt.ylabel('Portfolio Value (KRW.)')
 	plt.legend()
 	plt.grid()
 	plt.show()
@@ -148,7 +148,7 @@ def plot_all(stock_name, agent):
     df = pd.read_csv('./data/{}.csv'.format(stock_name))
     buy_prices = [df.iloc[t, 4] for t in agent.buy_dates]
     sell_prices = [df.iloc[t, 4] for t in agent.sell_dates]
-    ax[0].set_title('{} Total Return on {}: ${:.2f}'.format(agent.model_type, stock_name, portfolio_return))
+    ax[0].set_title('{} Total Return on {}: KRW.{:.2f}'.format(agent.model_type, stock_name, portfolio_return))
     ax[0].plot(df['Date'], df['Close'], color='black', label=stock_name)
     ax[0].scatter(agent.buy_dates, buy_prices, c='green', alpha=0.5, label='buy')
     ax[0].scatter(agent.sell_dates, sell_prices,c='red', alpha=0.5, label='sell')
@@ -160,13 +160,13 @@ def plot_all(stock_name, agent):
     dates, buy_and_hold_portfolio_values, buy_and_hold_return = buy_and_hold_benchmark(stock_name, agent)
     agent_return = agent.portfolio_values[-1] - agent.initial_portfolio_value
     ax[1].set_title('{} vs. Buy and Hold'.format(agent.model_type))
-    ax[1].plot(dates, agent.portfolio_values, color='green', label='{} Total Return: ${:.2f}'.format(agent.model_type, agent_return))
-    ax[1].plot(dates, buy_and_hold_portfolio_values, color='blue', label='{} Buy and Hold Total Return: ${:.2f}'.format(stock_name, buy_and_hold_return))
+    ax[1].plot(dates, agent.portfolio_values, color='green', label='{} Total Return: KRW.{:.2f}'.format(agent.model_type, agent_return))
+    ax[1].plot(dates, buy_and_hold_portfolio_values, color='blue', label='{} Buy and Hold Total Return: KRW.{:.2f}'.format(stock_name, buy_and_hold_return))
     # compare with S&P 500 performance in 2018 if stock is not S&P 500
     if '^GSPC' not in stock_name:
-    	dates, GSPC_buy_and_hold_portfolio_values, GSPC_buy_and_hold_return = buy_and_hold_benchmark('^GSPC_2018', agent)
-    	ax[1].plot(dates, GSPC_buy_and_hold_portfolio_values, color='red', label='S&P 500 2018 Buy and Hold Total Return: ${:.2f}'.format(GSPC_buy_and_hold_return))
-    ax[1].set_ylabel('Portfolio Value ($)')
+        dates, GSPC_buy_and_hold_portfolio_values, GSPC_buy_and_hold_return = buy_and_hold_benchmark('^GSPC_2018', agent)
+        ax[1].plot(dates, GSPC_buy_and_hold_portfolio_values, color='red', label='S&P 500 2018 Buy and Hold Total Return: KRW.{:.2f}'.format(GSPC_buy_and_hold_return))
+    ax[1].set_ylabel('Portfolio Value (KRW.)')
     ax[1].set_xticks(np.linspace(0, len(df), 10))
     ax[1].legend()
     ax[1].grid()
