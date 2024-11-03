@@ -78,7 +78,7 @@ for e in range(1, num_episode + 1):
     state = generate_combined_state(0, window_size, stock_prices, agent.balance, len(agent.inventory))
 
     for t in range(1, trading_period + 1):
-        if t % 100 == 0:
+        if t % 20 == 0:
             logging.info(f'-------------------Period: {t}/{trading_period}-------------------')
 
         reward = 0
