@@ -131,13 +131,18 @@ for e in range(1, num_episode + 1):
         if done:
             portfolio_return = evaluate_portfolio_performance(agent, logging)
             returns_across_episodes.append(portfolio_return)
+            if len(returns_across_episodes) > 2:
+                plot_portfolio_returns_across_episodes(task_name, returns_across_episodes)
 
     if e % inputs.save_frequency == 0:
-        if model_name == 'DQN':
+        if model_name == 'DDPG':
+            agent.actor.model.save_weights(f'saved_models/{task_name}_ep{e}_actor.weights.h5')
+            agent.critic.model.save_weights(f'saved_models/{task_name}_ep{e}_critic.weights.h5')
+        elif model_name == 'DDQN':
+            agent.actor.model_target.save_weights(f'saved_models/{task_name}_ep{e}_target.h5')
+            agent.critic.model.save_weights(f'saved_models/{task_name}_ep{e}.h5')
+        else:
             agent.model.save(f'saved_models/{task_name}_ep{e}.h5')
-        elif model_name == 'DDPG':
-            agent.actor.model.save_weights(f'saved_models/{task_name}_ep{e}_actor.h5')
-            agent.critic.model.save_weights(f'fsaved_models/{task_name}_ep{e}_critic.h5')
         logging.info('model saved')
 
 logging.info('total training time: {0:.2f} min'.format((time.time() - start_time)/60))

@@ -12,7 +12,7 @@ from utils import *
 parser = argparse.ArgumentParser(description='command line options')
 parser.add_argument('--model_to_load', action="store", dest="model_to_load", default='DQN_ep10', help="model name")
 parser.add_argument('--stock_name', action="store", dest="stock_name", default='^GSPC_2018', help="stock name")
-parser.add_argument('--initial_balance', action="store", dest="initial_balance", default=50000, type=int, help='initial balance')
+parser.add_argument('--initial_balance', action="store", dest="initial_balance", default=1_000_000, type=int, help='initial balance')
 inputs = parser.parse_args()
 
 model_to_load = inputs.model_to_load
@@ -44,10 +44,20 @@ def sell(t):
     agent.sell_dates.append(t)
     logging.info('Sell: ${:.2f} | Profit: ${:.2f}'.format(stock_prices[t], profit))
 
-# configure logging
-logging.basicConfig(filename=f'logs/{model_name}_evaluation_{stock_name}.log', filemode='w',
-                    format='[%(asctime)s.%(msecs)03d %(filename)s:%(lineno)3s] %(message)s', 
-                    datefmt='%m/%d/%Y %H:%M:%S', level=logging.INFO)
+# Configure file logging
+logging.basicConfig(
+    filename=f'logs/{model_name}_evaluation_{stock_name}.log',
+    filemode='w',
+    format='[%(asctime)s.%(msecs)03d %(filename)s:%(lineno)3s] %(message)s',
+    datefmt='%m/%d/%Y %H:%M:%S',
+    level=logging.INFO)
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+console_handler.setFormatter(logging.Formatter('%(asctime)s.%(msecs)03d %(filename)s:%(lineno)3s] %(message)s'))
+
+logger = logging.getLogger()
+logger.addHandler(console_handler)
 
 portfolio_return = 0
 while portfolio_return == 0: # a hack to avoid stationary case
@@ -64,14 +74,14 @@ while portfolio_return == 0: # a hack to avoid stationary case
             actions = agent.model.predict(state, verbose=0)[0]
             action = agent.act(state)
 
-        # print('actions:', actions)
+        print('actions:', actions)
         # print('chosen action:', action)
 
         next_state = generate_combined_state(t, window_size, stock_prices, agent.balance, len(agent.inventory))
         previous_portfolio_value = len(agent.inventory) * stock_prices[t] + agent.balance
         
         # execute position
-        logging.info(f'Step: {t}')
+        logging.info(f'Step: {t}/{trading_period} action={action}')
         if action != np.argmax(actions): logging.info(f"\t\t'{action_dict[action]}' is an exploration.")
         if action == 0: hold() # hold
         if action == 1 and agent.balance > stock_prices[t]: buy(t) # buy
@@ -85,8 +95,11 @@ while portfolio_return == 0: # a hack to avoid stationary case
         done = True if t == trading_period else False
         if done:
             portfolio_return = evaluate_portfolio_performance(agent, logging)
+            logging.info(f'portfolio_return: {portfolio_return}')
+            if portfolio_return == 0:
+                portfolio_return = -1 ## for quit
 
 if display:
     # plot_portfolio_transaction_history(stock_name, agent)
     # plot_portfolio_performance_comparison(stock_name, agent)
-    plot_all(stock_name, agent)
+    plot_all(stock_name, agent, model_to_load)

@@ -30,7 +30,7 @@ class ActorNetwork:
         # Model and target model
         self.model, self.states = self.create_actor_network(state_size, action_dim)
         if is_eval:
-            self.model.load_weights(f'saved_models/{model_name}_actor.h5')
+            self.model.load_weights(f'saved_models/{model_name}_actor.weights.h5')
         else:
             self.model_target, _ = self.create_actor_network(state_size, action_dim)
             self.model_target.set_weights(self.model.get_weights())  # initialize target network
@@ -43,7 +43,7 @@ class ActorNetwork:
         with tf.GradientTape() as tape:
             actions = self.model(states_batch, training=True)
             # Mean policy gradient for actor update
-            sampled_policy_grad = -tf.reduce_mean(action_grads_batch * actions) / self.buffer_size
+            sampled_policy_grad = tf.reduce_mean(action_grads_batch * actions) / self.buffer_size
         grads = tape.gradient(sampled_policy_grad, self.model.trainable_variables)
 
         # Check if gradients are None
@@ -80,28 +80,16 @@ class CriticNetwork:
         # Model and target model
         self.model, self.actions, self.states = self.create_critic_network(state_size, action_dim)
         if is_eval:
-            self.model.load_weights(f'saved_models/{model_name}_critic.h5')
+            self.model.load_weights(f'saved_models/{model_name}_critic.weights.h5')
         else:
             self.model_target, _, _ = self.create_critic_network(state_size, action_dim)
+            self.model_target.set_weights(self.model.get_weights())
 
     def gradients(self, states_batch, actions_batch):
-        # Ensure inputs are tensors
-        states_batch = tf.convert_to_tensor(states_batch, dtype=tf.float32)
-        actions_batch = tf.convert_to_tensor(actions_batch, dtype=tf.float32)
-
         with tf.GradientTape() as tape:
             tape.watch(actions_batch)
             Q_values = self.model([states_batch, actions_batch], training=True)
-        
-        # Print debugging information
-        print("states_batch shape:", states_batch.shape)
-        print("actions_batch shape:", actions_batch.shape)
-        print("Q_values shape:", Q_values.shape)
-
-        # Calculate gradients
         grads = tape.gradient(Q_values, actions_batch)
-
-        # Check if gradients are None
         if grads is None:
             raise ValueError("Gradients are None; check Q-values computation and ensure shapes are compatible.")
         return grads
@@ -190,29 +178,48 @@ class Agent(Portfolio):
         return actions
 
     def experience_replay(self):
+        if len(self.memory) < self.buffer_size:
+            return  # Not enough samples to replay
+
         mini_batch = random.sample(self.memory, self.buffer_size)
 
         y_batch = []
         for state, actions, reward, next_state, done in mini_batch:
+            state = np.array(state).reshape(1, -1)
+            next_state = np.array(next_state).reshape(1, -1)
+            actions = np.array(actions).reshape(1, -1)
+
             if not done:
-                Q_target_value = self.critic.model_target.predict([next_state, self.actor.model_target.predict(next_state)])
+                target_actions = self.actor.model_target.predict(next_state)
+                Q_target_value = self.critic.model_target.predict([next_state, target_actions])
                 y = reward + self.gamma * Q_target_value
             else:
-                y = reward * np.ones((1, self.action_dim))
+                y = np.array([[reward]])  # Ensure y has shape (1, 1)
             y_batch.append(y)
 
         # Convert y_batch to a tensor
         y_batch = tf.convert_to_tensor(np.vstack(y_batch), dtype=tf.float32)
-        
-        # Ensure states_batch and actions_batch are tensors
-        states_batch = tf.convert_to_tensor(np.vstack([tup[0] for tup in mini_batch]), dtype=tf.float32)
-        actions_batch = tf.convert_to_tensor(np.vstack([tup[1] for tup in mini_batch]), dtype=tf.float32)
+
+        # Prepare batches
+        states_batch = tf.convert_to_tensor(
+            np.vstack([np.array(tup[0]).reshape(1, -1) for tup in mini_batch]), dtype=tf.float32
+        )
+        actions_batch = tf.convert_to_tensor(
+            np.vstack([np.array(tup[1]).reshape(1, -1) for tup in mini_batch]), dtype=tf.float32
+        )
 
         # Update critic by minimizing the loss
         loss = self.critic.model.train_on_batch([states_batch, actions_batch], y_batch)
 
         # Update actor using policy gradients
-        action_grads_batch = self.critic.gradients(states_batch, self.actor.model(states_batch))
+        with tf.GradientTape() as tape:
+            actions_pred = self.actor.model(states_batch)
+            critic_value = self.critic.model([states_batch, actions_pred])
+        action_grads_batch = tape.gradient(critic_value, actions_pred)
+
+        # Multiply gradients by -1 for ascent
+        action_grads_batch = -action_grads_batch
+
         self.actor.train(states_batch, action_grads_batch)
 
         # Update target networks
