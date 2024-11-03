@@ -57,8 +57,9 @@ def sell(t):
         reward = profit
         return 'Sell: KRW.{:.2f} | Profit: KRW.{:.2f}'.format(stock_prices[t], profit)
 
+task_name = f'{model_name}+{stock_name}'
 # configure logging
-logging.basicConfig(filename=f'logs/{model_name}_training_{stock_name}.log', filemode='w',
+logging.basicConfig(filename=f'logs/{task_name}.log', filemode='w',
                     format='[%(asctime)s.%(msecs)03d %(filename)s:%(lineno)3s] %(message)s', 
                     datefmt='%m/%d/%Y %H:%M:%S', level=logging.INFO)
 
@@ -135,14 +136,13 @@ for e in range(1, num_episode + 1):
             portfolio_return = evaluate_portfolio_performance(agent, logging)
             returns_across_episodes.append(portfolio_return)
 
-    # save models periodically
     if e % inputs.save_frequency == 0:
         if model_name == 'DQN':
-            agent.model.save('saved_models/DQN_ep' + str(e) + '.h5')
+            agent.model.save(f'saved_models/{task_name}_ep{e}.h5')
         elif model_name == 'DDPG':
-            agent.actor.model.save_weights('saved_models/DDPG_ep{}_actor.h5'.format(str(e)))
-            agent.critic.model.save_weights('saved_models/DDPG_ep{}_critic.h5'.format(str(e)))
+            agent.actor.model.save_weights(f'saved_models/{task_name}_ep{e}_actor.h5')
+            agent.critic.model.save_weights(f'fsaved_models/{task_name}_ep{e}_critic.h5')
         logging.info('model saved')
 
 logging.info('total training time: {0:.2f} min'.format((time.time() - start_time)/60))
-plot_portfolio_returns_across_episodes(model_name, returns_across_episodes)
+plot_portfolio_returns_across_episodes(task_name, returns_across_episodes)
