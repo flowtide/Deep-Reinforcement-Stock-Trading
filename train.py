@@ -139,8 +139,8 @@ for e in range(1, num_episode + 1):
             agent.actor.model.save_weights(f'saved_models/{task_name}_ep{e}_actor.weights.h5')
             agent.critic.model.save_weights(f'saved_models/{task_name}_ep{e}_critic.weights.h5')
         elif model_name == 'DDQN':
-            agent.actor.model_target.save_weights(f'saved_models/{task_name}_ep{e}_target.h5')
-            agent.critic.model.save_weights(f'saved_models/{task_name}_ep{e}.h5')
+            agent.model_target.save(f'saved_models/{task_name}_ep{e}_target.h5')
+            agent.model.save(f'saved_models/{task_name}_ep{e}.h5')
         else:
             agent.model.save(f'saved_models/{task_name}_ep{e}.h5')
         logging.info('model saved')

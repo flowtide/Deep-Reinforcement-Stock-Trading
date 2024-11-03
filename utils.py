@@ -6,7 +6,7 @@ import matplotlib.font_manager as fm
 from matplotlib import font_manager, rc
 from matplotlib.dates import DateFormatter
 
-CLOSE_POS = 3
+CLOSE_POS = 4
 
 path = '/usr/share/fonts/truetype/nanum/NanumMyeongjo.ttf'
 fontprop = fm.FontProperties(fname=path, size=12)
