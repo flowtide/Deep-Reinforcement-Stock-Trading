@@ -122,7 +122,7 @@ class CriticNetwork:
         h3 = Dense(HIDDEN3_UNITS, activation='relu')(h2)
         Q = Dense(1, activation='linear')(h3)  # Output a single Q-value
         model = Model(inputs=[states, actions], outputs=Q)
-        model.compile(loss='mse', optimizer=Adam(learning_rate=self.learning_rate, decay=1e-6))
+        model.compile(loss='mean_squared_error', optimizer=Adam(learning_rate=self.learning_rate, decay=1e-6))
         return model, actions, states
 
 

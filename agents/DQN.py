@@ -10,6 +10,12 @@ from tensorflow.keras.optimizers import Adam
 
 from utils import Portfolio
 
+import tensorflow as tf
+# TensorFlow GPU configuration (enables memory growth to avoid full GPU allocation at once)
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
 
 # reference:
 # https://arxiv.org/pdf/1312.5602.pdf
@@ -60,17 +66,35 @@ class Agent(Portfolio):
         return np.argmax(options[0])
 
     def experience_replay(self):
-        # retrieve recent buffer_size long memory
-        mini_batch = [self.memory[i] for i in range(len(self.memory) - self.buffer_size + 1, len(self.memory))]
+        if len(self.memory) < self.buffer_size:
+            return  # Not enough samples to replay
 
-        for state, actions, reward, next_state, done in mini_batch:
-            if not done:
-                Q_target_value = reward + self.gamma * np.amax(self.model.predict(next_state, verbose=0)[0])
+        # Randomly sample a mini-batch from memory
+        mini_batch = random.sample(self.memory, self.buffer_size)
+
+        # Initialize arrays for states and targets
+        states = np.zeros((self.buffer_size, self.state_dim))
+        targets = np.zeros((self.buffer_size, self.action_dim))
+
+        for i, (state, actions, reward, next_state, done) in enumerate(mini_batch):
+            state = np.array(state)
+            next_state = np.array(next_state)
+
+            # Predict the current Q-values
+            target = self.model.predict(state.reshape(1, -1), verbose=0)[0]
+
+            if done:
+                target[np.argmax(actions)] = reward
             else:
-                Q_target_value = reward
-            next_actions = self.model.predict(state, verbose=0)
-            next_actions[0][np.argmax(actions)] = Q_target_value
-            history = self.model.fit(state, next_actions, epochs=1, verbose=0)
+                # Predict the future Q-values
+                Q_future = max(self.model.predict(next_state.reshape(1, -1), verbose=0)[0])
+                target[np.argmax(actions)] = reward + self.gamma * Q_future
+
+            states[i] = state
+            targets[i] = target
+
+        # Train the model on all states and targets in one batch
+        history = self.model.fit(states, targets, epochs=1, verbose=0, batch_size=self.buffer_size)
 
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
