@@ -57,7 +57,7 @@ def sell(t):
         reward = profit
         return 'Sell: KRW.{:.2f} | Profit: KRW.{:.2f}'.format(stock_prices[t], profit)
 
-task_name = f'{model_name}+{stock_name}'
+task_name = f'{model_name}_{stock_name}'
 # configure logging
 logging.basicConfig(filename=f'logs/{task_name}.log', filemode='w',
                     format='[%(asctime)s.%(msecs)03d %(filename)s:%(lineno)3s] %(message)s', 
@@ -79,7 +79,7 @@ for e in range(1, num_episode + 1):
 
     for t in range(1, trading_period + 1):
         if t % 100 == 0:
-            logging.info(f'\n-------------------Period: {t}/{trading_period}-------------------')
+            logging.info(f'-------------------Period: {t}/{trading_period}-------------------')
 
         reward = 0
         next_state = generate_combined_state(t, window_size, stock_prices, agent.balance, len(agent.inventory))
@@ -92,7 +92,6 @@ for e in range(1, num_episode + 1):
             actions = agent.model.predict(state, verbose=0)[0]
             action = agent.act(state)
         
-        # execute position
         logging.info('Step: {}\tHold signal: {:.4} \tBuy signal: {:.4} \tSell signal: {:.4}'.format(t, actions[0], actions[1], actions[2]))
         if action != np.argmax(actions): logging.info(f"\t\t'{action_dict[action]}' is an exploration.")
         if action == 0: # hold
@@ -102,7 +101,6 @@ for e in range(1, num_episode + 1):
         if action == 2: # sell
             execution_result = sell(t)        
         
-        # check execution result
         if execution_result is None:
             reward -= treasury_bond_daily_return_rate() * agent.balance  # missing opportunity
         else:
@@ -122,10 +120,8 @@ for e in range(1, num_episode + 1):
         done = True if t == trading_period else False
         agent.remember(state, actions, reward, next_state, done)
 
-        # update state
         state = next_state
 
-        # experience replay
         if len(agent.memory) > agent.buffer_size:
             num_experience_replay += 1
             loss = agent.experience_replay()

@@ -51,7 +51,7 @@ class Agent(Portfolio):
         model.add(Dense(units=32, activation='relu'))
         model.add(Dense(units=8, activation='relu'))
         model.add(Dense(self.action_dim, activation='softmax'))
-        model.compile(loss='mse', optimizer=Adam(learning_rate=0.001))
+        model.compile(loss='mean_squared_error', optimizer=Adam(learning_rate=0.001))
         return model
 
     def reset(self):
@@ -68,18 +68,24 @@ class Agent(Portfolio):
         return np.argmax(options[0])
 
     def experience_replay(self):
-        # sample random buffer_size long memory
+        # Sample random buffer_size long memory
         mini_batch = random.sample(self.memory, self.buffer_size)
 
         for state, actions, reward, next_state, done in mini_batch:
-            Q_expected = reward + (1 - done) * self.gamma * np.amax(self.model_target.predict(next_state)[0])
-
-            next_actions = self.model.predict(state)
-            next_actions[0][np.argmax(actions)] = Q_expected
+            # Predict Q-values for the next state with the target network
+            target = self.model.predict(state)
             
-            history = self.model.fit(state, next_actions, epochs=1, verbose=0)
+            # Update the Q-value for the selected action
+            Q_expected = reward + (1 - done) * self.gamma * np.amax(self.model_target.predict(next_state)[0])
+            target[0][np.argmax(actions)] = Q_expected
+            
+            # Train the model on the updated target
+            history = self.model.fit(state, target, epochs=1, verbose=0)
+            
+            # Update target network weights
             self.update_model_target()
 
+        # Decrease exploration rate over time
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 

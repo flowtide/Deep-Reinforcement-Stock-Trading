@@ -27,7 +27,12 @@ class Agent(Portfolio):
         self.epsilon_min = 0.01  # minimum exploration rate
         self.epsilon_decay = 0.995 # decrease exploration rate as the agent becomes good at trading
         self.is_eval = is_eval
-        self.model = load_model('saved_models/{}.h5'.format(model_name)) if is_eval else self.model()
+        if is_eval:
+            model_file = f'saved_models/{model_name}.h5'
+            print(f'loading model: {model_file}')
+            self.model = load_model(model_file)
+        else:
+            self.model = self.model()
 
         self.tensorboard = TensorBoard(log_dir='./logs/DQN_tensorboard', update_freq=90)
         self.tensorboard.set_model(self.model)
@@ -38,7 +43,7 @@ class Agent(Portfolio):
         model.add(Dense(units=32, activation='relu'))
         model.add(Dense(units=8, activation='relu'))
         model.add(Dense(self.action_dim, activation='softmax'))
-        model.compile(loss='mse', optimizer=Adam(learning_rate=0.01))
+        model.compile(loss='mean_squared_error', optimizer=Adam(learning_rate=0.01))
         return model
 
     def reset(self):
